@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flightpath Animation</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="leaflet.motion.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Prevent scrollbars */
+        }
+
+        #map {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .panel-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="panel-container">
+        <h3>Flight Animation</h3>
+        <p>Origin Airport:</p>
+        <select id="origin"></select>
+        <p>Destination Airport:</p>
+        <select id="destination"></select>
+        <button id="animate-button">Animate</button>
+    </div>
+    <div id="map"></div>
+
+    <script>
+        var airports = [
+            {
+                value: 'cdg',
+                text: 'Charles de Gaulle Airport',
+                coordinates: [49.0097, 2.5479]
+            },
+            {
+                value: 'fra',
+                text: 'Frankfurt Airport',
+                coordinates: [50.0379, 8.5622]
+            },
+            {
+                value: 'lhr',
+                text: 'Heathrow Airport',
+                coordinates: [51.4700, -0.4543]
+            },
+            {
+                value: 'ams',
+                text: 'Amsterdam Airport Schiphol',
+                coordinates: [52.3086, 4.7639]
+            },
+            {
+                value: 'bcn',
+                text: 'Barcelona–El Prat Airport',
+                coordinates: [41.2970, 2.0785]
+            },
+            {
+                value: 'mad',
+                text: 'Adolfo Suárez Madrid–Barajas Airport',
+                coordinates: [40.4940, -3.5672]
+            },
+            {
+                value: 'fco',
+                text: 'Leonardo da Vinci–Fiumicino Airport',
+                coordinates: [41.8003, 12.2389]
+            },
+            {
+                value: 'ath',
+                text: 'Athens International Airport',
+                coordinates: [37.9364, 23.9445]
+            },
+            {
+                value: 'cph',
+                text: 'Copenhagen Airport',
+                coordinates: [55.6296, 12.6497]
+            },
+            {
+                value: 'zrh',
+                text: 'Zurich Airport',
+                coordinates: [47.4502, 8.5618]
+            }
+        ];
+
+        var flightPath = {
+		 "cdg-ams": [
+        { "lat": 49.0097, "lng": 2.5479 },
+        { "lat": 52.3086, "lng": 4.7639 }
+    ],
+    "cdg-fra": [
+        { "lat": 49.0097, "lng": 2.5479 },
+        { "lat": 50.0379, "lng": 8.5622 }
+    ],
+    "cdg-lhr": [
+        { "lat": 49.0097, "lng": 2.5479 },
+        { "lat": 51.4700, "lng": -0.4543 }
+    ],
+    "cdg-bcn": [
+        { "lat": 49.0097, "lng": 2.5479 },
+        { "lat": 41.2970, "lng": 2.0785 }
+    ],
+    "cdg-mad": [
+        { "lat": 49.0097, "lng": 2.5479 },
+        { "lat": 40.4940, "lng": -3.5672 }
+    ],
+    "cdg-fco": [
+        { "lat": 49.0097, "lng": 2.5479 },
+        { "lat": 41.8003, "lng": 12.2389 }
+    ],
+    "cdg-ath": [
+        { "lat": 49.0097, "lng": 2.5479 },
+        { "lat": 37.9364, "lng": 23.9445 }
+    ],
+    "cdg-cph": [
+        { "lat": 49.0097, "lng": 2.5479 },
+        { "lat": 55.6296, "lng": 12.6497 }
+    ],
+    "cdg-zrh": [
+        { "lat": 49.0097, "lng": 2.5479 },
+        { "lat": 47.4502, "lng": 8.5618 }
+    ],
+	
+    // Add more flight paths from cdg to other airports...
+
+   
+ "lhr-cdg": [
+        { "lat": 51.4700, "lng": -0.4543 },
+        { "lat": 49.0097, "lng": 2.5479 }
+    ],
+    "lhr-ams": [
+        { "lat": 51.4700, "lng": -0.4543 },
+        { "lat": 52.3086, "lng": 4.7639 }
+    ],
+    "lhr-fra": [
+        { "lat": 51.4700, "lng": -0.4543 },
+        { "lat": 50.0379, "lng": 8.5622 }
+    ],
+    "lhr-bcn": [
+        { "lat": 51.4700, "lng": -0.4543 },
+        { "lat": 41.2970, "lng": 2.0785 }
+    ],
+    "lhr-mad": [
+        { "lat": 51.4700, "lng": -0.4543 },
+        { "lat": 40.4940, "lng": -3.5672 }
+    ],
+    "lhr-fco": [
+        { "lat": 51.4700, "lng": -0.4543 },
+        { "lat": 41.8003, "lng": 12.2389 }
+    ],
+    "lhr-ath": [
+        { "lat": 51.4700, "lng": -0.4543 },
+        { "lat": 37.9364, "lng": 23.9445 }
+    ],
+    "lhr-cph": [
+        { "lat": 51.4700, "lng": -0.4543 },
+        { "lat": 55.6296, "lng": 12.6497 }
+    ],
+    "lhr-zrh": [
+        { "lat": 51.4700, "lng": -0.4543 },
+        { "lat": 47.4502, "lng": 8.5618 }
+    ],
+    // Add more flight paths for lhr to other airports...
+	
+	   "ams-cdg": [
+        { "lat": 52.3086, "lng": 4.7639 },
+        { "lat": 49.0097, "lng": 2.5479 }
+    ],
+    "ams-lhr": [
+        { "lat": 52.3086, "lng": 4.7639 },
+        { "lat": 51.4700, "lng": -0.4543 }
+    ],
+    "ams-fra": [
+        { "lat": 52.3086, "lng": 4.7639 },
+        { "lat": 50.0379, "lng": 8.5622 }
+    ],
+    "ams-bcn": [
+        { "lat": 52.3086, "lng": 4.7639 },
+        { "lat": 41.2970, "lng": 2.0785 }
+    ],
+    "ams-mad": [
+        { "lat": 52.3086, "lng": 4.7639 },
+        { "lat": 40.4940, "lng": -3.5672 }
+    ],
+    "ams-fco": [
+        { "lat": 52.3086, "lng": 4.7639 },
+        { "lat": 41.8003, "lng": 12.2389 }
+    ],
+    "ams-ath": [
+        { "lat": 52.3086, "lng": 4.7639 },
+        { "lat": 37.9364, "lng": 23.9445 }
+    ],
+    "ams-cph": [
+        { "lat": 52.3086, "lng": 4.7639 },
+        { "lat": 55.6296, "lng": 12.6497 }
+    ],
+    "ams-zrh": [
+        { "lat": 52.3086, "lng": 4.7639 },
+        { "lat": 47.4502, "lng": 8.5618 }
+    ],
+	
+	
+	  "fra-cdg": [
+        { "lat": 50.0379, "lng": 8.5622 },
+        { "lat": 49.0097, "lng": 2.5479 }
+    ],
+    "fra-lhr": [
+        { "lat": 50.0379, "lng": 8.5622 },
+        { "lat": 51.4700, "lng": -0.4543 }
+    ],
+    "fra-ams": [
+        { "lat": 50.0379, "lng": 8.5622 },
+        { "lat": 52.3086, "lng": 4.7639 }
+    ],
+    "fra-bcn": [
+        { "lat": 50.0379, "lng": 8.5622 },
+        { "lat": 41.2970, "lng": 2.0785 }
+    ],
+    "fra-mad": [
+        { "lat": 50.0379, "lng": 8.5622 },
+        { "lat": 40.4940, "lng": -3.5672 }
+    ],
+    "fra-fco": [
+        { "lat": 50.0379, "lng": 8.5622 },
+        { "lat": 41.8003, "lng": 12.2389 }
+    ],
+    "fra-ath": [
+        { "lat": 50.0379, "lng": 8.5622 },
+        { "lat": 37.9364, "lng": 23.9445 }
+    ],
+    "fra-cph": [
+        { "lat": 50.0379, "lng": 8.5622 },
+        { "lat": 55.6296, "lng": 12.6497 }
+    ],
+    "fra-zrh": [
+        { "lat": 50.0379, "lng": 8.5622 },
+        { "lat": 47.4502, "lng": 8.5618 }
+    ],
+
+
+  "bcn-cdg": [
+        { "lat": 41.2970, "lng": 2.0785 },
+        { "lat": 49.0097, "lng": 2.5479 }
+    ],
+    "bcn-lhr": [
+        { "lat": 41.2970, "lng": 2.0785 },
+        { "lat": 51.4700, "lng": -0.4543 }
+    ],
+    "bcn-ams": [
+        { "lat": 41.2970, "lng": 2.0785 },
+        { "lat": 52.3086, "lng": 4.7639 }
+    ],
+    "bcn-fra": [
+        { "lat": 41.2970, "lng": 2.0785 },
+        { "lat": 50.0379, "lng": 8.5622 }
+    ],
+    "bcn-mad": [
+        { "lat": 41.2970, "lng": 2.0785 },
+        { "lat": 40.4940, "lng": -3.5672 }
+    ],
+    "bcn-fco": [
+        { "lat": 41.2970, "lng": 2.0785 },
+        { "lat": 41.8003, "lng": 12.2389 }
+    ],
+    "bcn-ath": [
+        { "lat": 41.2970, "lng": 2.0785 },
+        { "lat": 37.9364, "lng": 23.9445 }
+    ],
+    "bcn-cph": [
+        { "lat": 41.2970, "lng": 2.0785 },
+        { "lat": 55.6296, "lng": 12.6497 }
+    ],
+    "bcn-zrh": [
+        { "lat": 41.2970, "lng": 2.0785 },
+        { "lat": 47.4502, "lng": 8.5618 }
+    ],
+
+
+	  "mad-cdg": [
+        { "lat": 40.4940, "lng": -3.5672 },
+        { "lat": 49.0097, "lng": 2.5479 }
+    ],
+    "mad-lhr": [
+        { "lat": 40.4940, "lng": -3.5672 },
+        { "lat": 51.4700, "lng": -0.4543 }
+    ],
+    "mad-ams": [
+        { "lat": 40.4940, "lng": -3.5672 },
+        { "lat": 52.3086, "lng": 4.7639 }
+    ],
+    "mad-fra": [
+        { "lat": 40.4940, "lng": -3.5672 },
+        { "lat": 50.0379, "lng": 8.5622 }
+    ],
+    "mad-bcn": [
+        { "lat": 40.4940, "lng": -3.5672 },
+        { "lat": 41.2970, "lng": 2.0785 }
+    ],
+    "mad-fco": [
+        { "lat": 40.4940, "lng": -3.5672 },
+        { "lat": 41.8003, "lng": 12.2389 }
+    ],
+    "mad-ath": [
+        { "lat": 40.4940, "lng": -3.5672 },
+        { "lat": 37.9364, "lng": 23.9445 }
+    ],
+    "mad-cph": [
+        { "lat": 40.4940, "lng": -3.5672 },
+        { "lat": 55.6296, "lng": 12.6497 }
+    ],
+    "mad-zrh": [
+        { "lat": 40.4940, "lng": -3.5672 },
+        { "lat": 47.4502, "lng": 8.5618 }
+    ],
+	
+	
+	  "fco-cdg": [
+        { "lat": 41.8003, "lng": 12.2389 },
+        { "lat": 49.0097, "lng": 2.5479 }
+    ],
+    "fco-lhr": [
+        { "lat": 41.8003, "lng": 12.2389 },
+        { "lat": 51.4700, "lng": -0.4543 }
+    ],
+    "fco-ams": [
+        { "lat": 41.8003, "lng": 12.2389 },
+        { "lat": 52.3086, "lng": 4.7639 }
+    ],
+    "fco-fra": [
+        { "lat": 41.8003, "lng": 12.2389 },
+        { "lat": 50.0379, "lng": 8.5622 }
+    ],
+    "fco-bcn": [
+        { "lat": 41.8003, "lng": 12.2389 },
+        { "lat": 41.2970, "lng": 2.0785 }
+    ],
+    "fco-mad": [
+        { "lat": 41.8003, "lng": 12.2389 },
+        { "lat": 40.4940, "lng": -3.5672 }
+    ],
+    "fco-ath": [
+        { "lat": 41.8003, "lng": 12.2389 },
+        { "lat": 37.9364, "lng": 23.9445 }
+    ],
+    "fco-cph": [
+        { "lat": 41.8003, "lng": 12.2389 },
+        { "lat": 55.6296, "lng": 12.6497 }
+    ],
+    "fco-zrh": [
+        { "lat": 41.8003, "lng": 12.2389 },
+        { "lat": 47.4502, "lng": 8.5618 }
+    ],
+	
+	
+	   "ath-cdg": [
+        { "lat": 37.9364, "lng": 23.9445 },
+        { "lat": 49.0097, "lng": 2.5479 }
+    ],
+    "ath-lhr": [
+        { "lat": 37.9364, "lng": 23.9445 },
+        { "lat": 51.4700, "lng": -0.4543 }
+    ],
+    "ath-ams": [
+        { "lat": 37.9364, "lng": 23.9445 },
+        { "lat": 52.3086, "lng": 4.7639 }
+    ],
+    "ath-fra": [
+        { "lat": 37.9364, "lng": 23.9445 },
+        { "lat": 50.0379, "lng": 8.5622 }
+    ],
+    "ath-bcn": [
+        { "lat": 37.9364, "lng": 23.9445 },
+        { "lat": 41.2970, "lng": 2.0785 }
+    ],
+    "ath-mad": [
+        { "lat": 37.9364, "lng": 23.9445 },
+        { "lat": 40.4940, "lng": -3.5672 }
+    ],
+    "ath-fco": [
+        { "lat": 37.9364, "lng": 23.9445 },
+        { "lat": 41.8003, "lng": 12.2389 }
+    ],
+    "ath-cph": [
+        { "lat": 37.9364, "lng": 23.9445 },
+        { "lat": 55.6296, "lng": 12.6497 }
+    ],
+    "ath-zrh": [
+        { "lat": 37.9364, "lng": 23.9445 },
+        { "lat": 47.4502, "lng": 8.5618 }
+    ],
+
+
+	  "cph-cdg": [
+        { "lat": 55.6296, "lng": 12.6497 },
+        { "lat": 49.0097, "lng": 2.5479 }
+    ],
+    "cph-lhr": [
+        { "lat": 55.6296, "lng": 12.6497 },
+        { "lat": 51.4700, "lng": -0.4543 }
+    ],
+    "cph-ams": [
+        { "lat": 55.6296, "lng": 12.6497 },
+        { "lat": 52.3086, "lng": 4.7639 }
+    ],
+    "cph-fra": [
+        { "lat": 55.6296, "lng": 12.6497 },
+        { "lat": 50.0379, "lng": 8.5622 }
+    ],
+    "cph-bcn": [
+        { "lat": 55.6296, "lng": 12.6497 },
+        { "lat": 41.2970, "lng": 2.0785 }
+    ],
+    "cph-mad": [
+        { "lat": 55.6296, "lng": 12.6497 },
+        { "lat": 40.4940, "lng": -3.5672 }
+    ],
+    "cph-fco": [
+        { "lat": 55.6296, "lng": 12.6497 },
+        { "lat": 41.8003, "lng": 12.2389 }
+    ],
+    "cph-ath": [
+        { "lat": 55.6296, "lng": 12.6497 },
+        { "lat": 37.9364, "lng": 23.9445 }
+    ],
+    "cph-zrh": [
+        { "lat": 55.6296, "lng": 12.6497 },
+        { "lat": 47.4502, "lng": 8.5618 }
+    ],
+	
+	
+	  "zrh-cdg": [
+        { "lat": 47.4502, "lng": 8.5618 },
+        { "lat": 49.0097, "lng": 2.5479 }
+    ],
+    "zrh-lhr": [
+        { "lat": 47.4502, "lng": 8.5618 },
+        { "lat": 51.4700, "lng": -0.4543 }
+    ],
+    "zrh-ams": [
+        { "lat": 47.4502, "lng": 8.5618 },
+        { "lat": 52.3086, "lng": 4.7639 }
+    ],
+    "zrh-fra": [
+        { "lat": 47.4502, "lng": 8.5618 },
+        { "lat": 50.0379, "lng": 8.5622 }
+    ],
+    "zrh-bcn": [
+        { "lat": 47.4502, "lng": 8.5618 },
+        { "lat": 41.2970, "lng": 2.0785 }
+    ],
+    "zrh-mad": [
+        { "lat": 47.4502, "lng": 8.5618 },
+        { "lat": 40.4940, "lng": -3.5672 }
+    ],
+    "zrh-fco": [
+        { "lat": 47.4502, "lng": 8.5618 },
+        { "lat": 41.8003, "lng": 12.2389 }
+    ],
+    "zrh-ath": [
+        { "lat": 47.4502, "lng": 8.5618 },
+        { "lat": 37.9364, "lng": 23.9445 }
+    ],
+    "zrh-cph": [
+        { "lat": 47.4502, "lng": 8.5618 },
+        { "lat": 55.6296, "lng": 12.6497 }
+    ]
+
+	// Define other flight paths...
+        };
+
+        function populateDropdown(dropdown, options) {
+            for (var i = 0; i < options.length; i++) {
+                var option = document.createElement('option');
+                option.value = options[i].value;
+                option.text = options[i].text;
+                option.dataset.extraData = JSON.stringify(options[i].coordinates);
+                dropdown.appendChild(option);
+            }
+        }
+
+        var map = L.map('map').setView([48.0, 2.0], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        var planeIcon = L.icon({
+            iconUrl: 'https://i.ibb.co/K7TChkR/sharpplane-blue.png',
+            iconSize: [20, 25]
+        });
+
+        var originDropdown = document.getElementById('origin');
+        var destinationDropdown = document.getElementById('destination');
+        var animateButton = document.getElementById('animate-button');
+
+        animateButton.addEventListener('click', function () {
+            var originCode = originDropdown.value;
+            var destinationCode = destinationDropdown.value;
+
+            var flightPathKey = originCode + '-' + destinationCode;
+            var reverseFlightPathKey = destinationCode + '-' + originCode;
+
+            var selectedFlightCoords = flightPath[flightPathKey] || flightPath[reverseFlightPathKey];
+
+
+           
+if (!selectedFlightCoords) {
+    alert('Origin and destination cannot be the same.');
+    return;
+}
+            var flightPathLatLngs = selectedFlightCoords.map(coord => [coord.lat, coord.lng]);
+
+            if (motionLayer) {
+                map.removeLayer(motionLayer);
+            }
+
+            motionLayer = L.motion.polyline(flightPathLatLngs, {
+                color: 'blue',
+                dashArray: '10, 10'
+            }, {
+                duration: 5000,
+                easing: L.Motion.Ease.easeOutQuad
+            }, {
+                showMarker: true,
+                icon: planeIcon
+            });
+
+            motionLayer.addTo(map);
+            motionLayer.motionStart();
+
+            document.querySelector('.panel-container').style.display = 'none';
+            document.getElementById('map').style.display = 'block';
+			
+			
+        });
+
+        populateDropdown(originDropdown, airports);
+        populateDropdown(destinationDropdown, airports);
+
+        var motionLayer;
+    </script>
+</body>
+</html>
